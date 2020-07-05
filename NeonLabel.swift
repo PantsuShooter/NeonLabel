@@ -23,15 +23,14 @@ import UIKit
         }
         
         struct Variables {
-    
             static let neonBGCollorAlpha: CGFloat = 0.3
             static let updateInterval: Double = 0.5
         }
     }
     
-    enum NeonState {
-        case ON
-        case OFF
+    public enum NeonState {
+        case on
+        case off
     }
     
     @IBInspectable var neonLightParting: CGFloat = 6
@@ -46,15 +45,16 @@ import UIKit
     }
     
     @IBInspectable var neonLight: Bool {
-        set { currentState = newValue ? .ON : .OFF }
-        get { return currentState == .ON  }
+        set { currentState = newValue ? .on : .off }
+        get { return currentState == .on  }
     }
 
     
     private var blinks: Bool = false
-    private var currentState: NeonState = .ON
+    private var currentState: NeonState = .on
     private var textSize: CGSize {
-        return text?.size(withAttributes: [.font: font!]) ?? CGSize(width: 0, height: 0)
+        guard let font = font, let text = text else { return .zero }
+        return text.size(withAttributes: [.font: font])
     }
       
     private var timer: Timer?
@@ -106,14 +106,14 @@ extension NeonLabel {
         if blink { startTimer() }
         else { stopTimer() }
         
-        currentState = .ON
+        currentState = .on
         setNeedsDisplay()
     }
     
     public func turnOFF() {
         
         stopTimer()
-        currentState = .OFF
+        currentState = .off
         setNeedsDisplay()
     }
 }
@@ -123,7 +123,7 @@ extension NeonLabel {
     
     private func startTimer() {
         
-        guard timer == nil || currentState == .OFF else { return }
+        guard timer == nil || currentState == .off else { return }
 
         timer = Timer(timeInterval: Const.Variables.updateInterval,
                           target: self,
@@ -157,7 +157,7 @@ extension NeonLabel {
         UIGraphicsBeginImageContextWithOptions(rect.size, false, UIScreen.main.scale)
         defer { UIGraphicsEndImageContext() }
         
-        if state == .ON, let backLightImage = generateLightImageWith(rect: rect) {
+        if state == .on, let backLightImage = generateLightImageWith(rect: rect) {
             
             var height = textSize.height * 2.5
             if height > frame.size.height { height = frame.size.height }
@@ -174,12 +174,12 @@ extension NeonLabel {
                                 blendMode: .lighten, alpha: Const.Variables.neonBGCollorAlpha)
         }
         
-        if state == .ON, let neonLightImage = generateNeonLightImageWith(rect: textRect) {
+        if state == .on, let neonLightImage = generateNeonLightImageWith(rect: textRect) {
             neonLightImage.draw(in: rect, blendMode: .lighten, alpha: 1)
         }
         
         if let textImage = generateTextImageWith(rect: textRect) {
-            textImage.draw(in: rect, blendMode: .lighten, alpha: state == .ON ? Const.Alpha.onAlpha : Const.Alpha.offAlpha)
+            textImage.draw(in: rect, blendMode: .lighten, alpha: state == .on ? Const.Alpha.onAlpha : Const.Alpha.offAlpha)
         }
         
         
@@ -191,7 +191,7 @@ extension NeonLabel {
         
         UIGraphicsBeginImageContextWithOptions(rect.size, false, UIScreen.main.scale)
         defer { UIGraphicsEndImageContext() }
-        text?.draw(in: rect, withAttributes: attributedText?.attributes(at: 0, effectiveRange: nil))
+        text?.draw(in: rect, withAttributes: attributedText?.attributes(at: .zero, effectiveRange: nil))
         
         return UIGraphicsGetImageFromCurrentImageContext()
     }
@@ -205,11 +205,11 @@ extension NeonLabel {
         let currentContext = UIGraphicsGetCurrentContext()
         currentContext?.saveGState()
         
-        let colors = [UIColor.white.withAlphaComponent(0.4).cgColor, UIColor.white.withAlphaComponent(0).cgColor] as CFArray
+        let colors = [UIColor.white.withAlphaComponent(0.4).cgColor, UIColor.white.withAlphaComponent(.zero).cgColor] as CFArray
         let endRadius = sqrt(pow(rect.size.width/2.2, 2) + pow(rect.size.height/2.2, 2))
         let center = CGPoint(x: rect.size.width / 2, y: rect.size.width / 2)
         let gradient = CGGradient(colorsSpace: nil, colors: colors, locations: nil)
-        currentContext?.drawRadialGradient(gradient!, startCenter: center, startRadius: 0.0, endCenter: center, endRadius: endRadius, options: .drawsBeforeStartLocation)
+        currentContext?.drawRadialGradient(gradient!, startCenter: center, startRadius: .zero, endCenter: center, endRadius: endRadius, options: .drawsBeforeStartLocation)
               
         currentContext?.restoreGState()
               
@@ -224,10 +224,10 @@ extension NeonLabel {
         UIGraphicsBeginImageContextWithOptions(rect.size, false, UIScreen.main.scale)
         defer { UIGraphicsEndImageContext() }
         
-        let textAttributes = attributedText?.attributes(at: 0, effectiveRange: nil)
+        let textAttributes = attributedText?.attributes(at: .zero, effectiveRange: nil)
         text?.draw(in: rect, withAttributes: textAttributes)
 
-        currentContext?.setShadow(offset: CGSize.zero, blur:
+        currentContext?.setShadow(offset: .zero, blur:
             self.font.pointSize / neonLightParting
             , color: neonColor.cgColor)
          
@@ -242,9 +242,8 @@ extension NeonLabel {
     @objc private func tick() {
             
         let currentState = Bool.random()
-        if (self.currentState == .ON) != currentState {
-            self.currentState = currentState ? .ON : .OFF
-            debugPrint(self.currentState)
+        if (self.currentState == .on) != currentState {
+            self.currentState = currentState ? .on : .off
             setNeedsDisplay()
         }
     }
